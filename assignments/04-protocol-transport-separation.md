@@ -11,6 +11,21 @@
 - 구체적인 네트워크 타입에 대한 프로토콜 의존성을 줄인다.
 - 두 번째 구현이 들어오기 전에 필요한 최소 동작 계약을 테스트로 고정한다.
 
+## 이번 과제에서 익힐 Rust
+
+- 파일과 `mod`, `pub`, `use`를 이용해 module 경계를 만드는 방법
+- trait가 타입의 공통 능력을 표현하는 방식
+- generic type parameter, `impl Trait`와 trait object의 차이
+- `&mut T`를 함수에 넘겼다가 다시 사용하는 borrowing 규칙
+- `#[test]`, `#[cfg(test)]`와 메모리 기반 입출력 타입을 이용한 단위 테스트
+
+## 검색 키워드
+
+- 모듈: `Rust modules mod pub use`, `Rust crate module file layout`
+- 추상화: `Rust std io Read Write trait`, `Rust generic trait bound impl Read`, `Rust dyn trait object difference`
+- 테스트: `Rust unit test cfg test`, `Rust std io Cursor test`, `Rust test byte buffer Read Write`
+- borrowing: `Rust mutable reference reborrow`
+
 ## 문제
 
 Echo 프로토콜이 `TcpStream`이라는 구체 네트워크 타입을 직접 알지 않게 만든다. 네트워크 연결 없이도 프로토콜 동작을 테스트할 수 있어야 한다.
@@ -30,6 +45,14 @@ Echo 프로토콜이 `TcpStream`이라는 구체 네트워크 타입을 직접 �
 3. 필요한 최소 입출력 능력을 정한다.
 4. 프로토콜 동작을 메모리 또는 테스트 대역으로 검증한다.
 5. 기존 TCP 실행 경로를 새 경계에 연결한다.
+
+## 단계별 힌트
+
+1. 먼저 코드를 `프로토콜 규칙`, `연결 처리`, `listener 실행`으로 표시만 하고 파일을 나누지는 않는다.
+2. 프로토콜 함수가 실제로 필요한 능력이 byte 읽기와 쓰기뿐이라면 인자에서 `TcpStream` 대신 그 능력을 표현할 방법을 조사한다.
+3. 표준 라이브러리의 `Read`와 `Write`를 경계로 쓰면 `TcpStream`뿐 아니라 메모리 타입도 같은 함수에 전달할 수 있다.
+4. 테스트에서는 실제 port를 열기 전에 `Cursor`, byte slice 또는 `Vec<u8>`가 어떤 입출력 trait를 구현하는지 확인한다.
+5. generic 하나로 충분한 단계에서 `dyn`, 여러 계층의 custom trait와 factory를 한꺼번에 추가하지 않는다.
 
 ## 완료 조건
 

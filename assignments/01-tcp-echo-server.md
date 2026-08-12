@@ -3,13 +3,46 @@
 ## 선수 조건
 
 - `cargo run`으로 현재 프로젝트를 실행할 수 있다.
-- 변수, 반복문, `Result`와 `?`의 기본 의미를 알고 있다.
+- Rust 문법을 미리 알고 있을 필요는 없다. 아래 검색 키워드와 힌트를 따라 첫 프로그램 안에서 익힌다.
 
 ## 학습 목표
 
 - TCP listener와 연결된 stream의 역할을 구분한다.
 - 바이트 읽기, 쓰기와 연결 종료를 직접 처리한다.
 - 컴파일 오류와 입출력 오류를 구분한다.
+
+## 이번 과제에서 익힐 Rust
+
+- `src/main.rs`, `fn main()`, 중괄호, 문장 끝의 세미콜론으로 실행 프로그램을 구성하는 방법
+- `use`로 표준 라이브러리의 타입과 trait를 현재 파일로 가져오는 방법
+- `let`, `let mut`, `loop`, `break`와 `if`를 이용한 기본 제어 흐름
+- `[u8; N]` 배열과 `&buffer[..n]` 슬라이스의 차이
+- `Type::function()` 형태의 연관 함수와 `value.method()` 형태의 메서드 호출 차이
+- `(first, second)` tuple과 destructuring으로 여러 반환값을 받는 방법
+- 함수가 `Result`를 반환하는 이유와 `?`가 오류를 전달하는 방식
+- 메서드가 `&mut self`를 요구할 때 값도 가변으로 선언해야 하는 이유
+
+## 검색 키워드
+
+먼저 왼쪽의 개념 검색어를 보고, 필요한 타입 이름을 알게 되면 오른쪽의 API 검색어로 좁힌다.
+
+- 첫 문장: `Rust main function`, `Rust statements semicolon`, `Rust associated function double colon`, `Rust method call dot syntax`
+- 언어: `Rust use keyword`, `Rust let mut`, `Rust loop break`, `Rust initialize byte array`, `Rust array slice`, `Rust tuple destructuring`, `Rust Result question mark operator`
+- 네트워크: `Rust std TcpListener bind`, `Rust TcpListener accept`
+- 입출력: `Rust std io Read read`, `Rust std io Write write_all`, `Rust read returns zero EOF`
+- 컴파일 오류: 오류 메시지의 `E` 번호와 함께 `rustc --explain E번호`
+
+## 0단계: 첫 Rust 파일 읽기
+
+네트워크 코드를 작성하기 전에 현재 [`src/main.rs`](../src/main.rs)를 열고 다음 요소를 설명할 수 있는지만 확인한다.
+
+1. 실행은 `main` 함수의 중괄호 안에서 시작한다.
+2. 일반적인 실행 문장은 세미콜론으로 끝난다.
+3. `Type::function()`은 타입에 연결된 함수를 호출하고, `value.method()`는 이미 존재하는 값의 메서드를 호출한다.
+4. `[0_u8; 8]`처럼 같은 값으로 고정 크기 배열을 만드는 문법을 별도의 작은 변수로 컴파일해 본다.
+5. 두 값을 가진 tuple을 변수 두 개로 분해하는 문법을 작은 숫자 값으로 먼저 컴파일해 본다.
+
+각 항목은 네트워크 코드와 섞기 전에 한두 문장짜리 실험으로 확인하고 지운다. 문법을 전부 외우는 것이 아니라 컴파일러가 받아들이는 형태만 한 번 경험하는 단계다.
 
 ## 문제
 
@@ -32,6 +65,18 @@
 5. 클라이언트 종료를 감지한다.
 6. 다음 클라이언트를 받을 수 있게 연결 수락을 반복한다.
 
+## 단계별 힌트
+
+힌트는 위에서부터 하나씩만 확인한다.
+
+1. 주소에서 연결을 기다리는 표준 라이브러리 타입은 `std::net::TcpListener`다. 생성에 사용하는 연관 함수의 이름에는 `bind`가 들어간다.
+2. listener에서 연결 하나를 얻는 메서드는 연결된 stream과 상대 주소를 tuple로 함께 반환한다. 두 값을 각각 이름 붙여 받으려면 `Rust tuple destructuring`을 검색한다.
+3. 네트워크에서 읽고 쓰는 메서드는 `TcpStream` 자체 문서뿐 아니라 `std::io::Read`와 `std::io::Write` trait 문서에 있다.
+4. 읽기용 공간은 고정 크기 `u8` 배열로 시작해도 된다. `read`의 반환값은 데이터가 아니라 실제로 채워진 byte 수다.
+5. 반환된 byte 수가 `0`이면 해당 연결의 반복을 끝낼 조건이다. 서버 전체의 연결 수락 반복까지 끝내면 안 된다.
+6. 응답할 때는 버퍼 전체가 아니라 실제로 채워진 범위의 슬라이스만 전달한다. 전체 전송을 원하면 `write`와 `write_all`의 차이를 조사한다.
+7. `main`이 `std::io::Result<()>`를 반환하게 만들면 입출력 함수의 `Result`를 `?`로 위쪽에 전달할 수 있다. 처음에는 복잡한 사용자 정의 오류 타입을 만들지 않는다.
+
 ## 완료 조건
 
 - 다른 터미널에서 `nc 127.0.0.1 7878`로 연결할 수 있다.
@@ -47,6 +92,8 @@
 - 읽기 결과가 `0`이면 연결에는 어떤 일이 일어난 것인가?
 - 버퍼 전체가 아니라 실제로 읽은 바이트만 보내야 하는 이유는 무엇인가?
 - 한 번의 쓰기 호출이 항상 전체 데이터를 전송하는가?
+- `let stream`과 `let mut stream` 중 어느 쪽이 필요한지 메서드 시그니처로 어떻게 판단하는가?
+- `use std::io::Read`를 빼면 `read` 메서드를 찾지 못하는 이유는 무엇인가?
 
 ## 검증
 
@@ -76,4 +123,3 @@ nc 127.0.0.1 7878
 ## 막혔을 때 질문 형식
 
 > 과제 01을 진행 중이다. 예상한 동작은 ___이고 실제 결과는 ___이다. ___까지 시도했고 현재 원인은 ___라고 생각한다. 정답 코드 없이 힌트 1단계만 알려줘.
-

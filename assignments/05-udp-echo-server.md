@@ -11,6 +11,19 @@
 - 연결 없이 송신자 주소를 기준으로 응답한다.
 - TCP와 UDP의 상태 및 실패 의미를 비교한다.
 
+## 이번 과제에서 익힐 Rust
+
+- tuple을 분해해 payload 크기와 송신자 주소를 받는 방법
+- `SocketAddr` 같은 enum 기반 주소 타입을 사용하는 방법
+- `usize`로 byte 배열의 유효 범위를 slice로 만드는 방법
+- 하나의 socket 값을 반복해서 빌려 쓰는 ownership 패턴
+
+## 검색 키워드
+
+- 언어: `Rust tuple destructuring`, `Rust enum SocketAddr`, `Rust slice from length`
+- UDP API: `Rust std UdpSocket bind`, `Rust UdpSocket recv_from send_to`
+- 동작: `Rust UDP zero length datagram`, `Rust UDP datagram truncation receive buffer`
+
 ## 문제
 
 UDP로 받은 하나의 데이터그램을 보낸 주소로 그대로 돌려주는 서버를 만든다. TCP 구현과 비교해 연결, 순서와 메시지 경계의 차이를 기록한다.
@@ -30,6 +43,14 @@ UDP로 받은 하나의 데이터그램을 보낸 주소로 그대로 돌려주�
 3. 수신 데이터와 송신자 주소를 함께 확인한다.
 4. 같은 payload를 정확한 송신자에게 보낸다.
 5. 여러 송신자의 데이터그램을 번갈아 보내 검증한다.
+
+## 단계별 힌트
+
+1. UDP에서는 `TcpListener`와 연결별 stream이 나뉘지 않는다. `UdpSocket` 하나를 주소에 bind한 뒤 반복해서 수신한다.
+2. `recv_from`의 반환 타입을 읽고 byte 수와 송신자 주소를 tuple pattern으로 분해한다.
+3. 응답 대상은 서버가 미리 아는 주소가 아니라 방금 받은 송신자 주소다. `send_to`가 요구하는 인자를 확인한다.
+4. TCP의 `read == 0`은 EOF지만 UDP의 길이 `0`은 빈 데이터그램일 수 있다. 같은 조건으로 반복을 종료하지 않는다.
+5. 수신 버퍼 크기보다 큰 데이터그램 실험은 운영체제 동작을 관찰해 기록하고, 추측으로 처리 규칙을 만들지 않는다.
 
 ## 완료 조건
 
@@ -58,4 +79,3 @@ UDP로 받은 하나의 데이터그램을 보낸 주소로 그대로 돌려주�
 ## 막혔을 때 질문 형식
 
 > 과제 05를 진행 중이다. TCP에서는 ___라고 이해했고 UDP에서는 ___ 현상이 발생했다. 완성 코드를 주지 말고 두 모델의 차이를 확인할 질문만 해줘.
-

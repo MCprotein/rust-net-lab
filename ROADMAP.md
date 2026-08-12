@@ -9,6 +9,16 @@
 - 필수 과제 01~12를 먼저 진행하고 과제 13은 선택적으로 진행한다.
 - 과제를 완료하면 이 문서의 체크박스를 갱신하고 학습 내용을 커밋한다.
 - 막혔을 때는 문서 검색 → 작은 실험 → 단계별 힌트 요청 순서로 해결한다.
+- Rust 문법을 별도 진도표로 먼저 끝내지 않는다. 각 과제의 `이번 과제에서 익힐 Rust`와 `검색 키워드`를 필요한 순간에 사용한다.
+
+## Rust 언어 학습 흐름
+
+- **과제 01~02:** `main` 함수와 기본 문장, 변수, 가변성, 배열·슬라이스, tuple, 반복문, 함수, `Result`, `?`, `Read`/`Write` trait 첫 사용, `Vec`와 정수 변환
+- **과제 03~04:** 소유권 이동, closure, thread, trait와 generic의 본격적인 활용, module과 단위 테스트
+- **과제 05~07:** tuple, enum, `Option`, byte parsing, 상태 표현과 timeout
+- **과제 08~10:** `Arc`, `Mutex`, channel, `HashMap`, 프로세스, 설정 모델과 여러 실행 흐름의 종료
+- **과제 11:** FFI, `unsafe`, raw pointer, 파일 디스크립터 소유권과 RAII
+- **과제 12~13:** `async`/`await`, `Future`, 취소, bit 연산, checked arithmetic와 binary parser
 
 ## Phase 1. TCP 스트림
 

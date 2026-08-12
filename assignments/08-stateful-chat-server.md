@@ -12,6 +12,21 @@
 - 여러 연결이 공유하는 사용자 상태를 안전하게 관리한다.
 - 느린 소비자와 비정상 종료의 영향을 제한한다.
 
+## 이번 과제에서 익힐 Rust
+
+- `HashMap`으로 사용자 이름과 연결별 상태를 관리하는 방법
+- `Arc<T>`가 소유권을 공유하고 `Mutex<T>`가 변경 접근을 조정하는 방식
+- `MutexGuard`의 수명과 guard가 scope를 벗어날 때 lock이 풀리는 RAII
+- `mpsc::sync_channel`로 상태 변경과 느린 네트워크 쓰기를 분리하고 queue 크기를 제한하는 선택지
+- `Clone`, `Drop`과 오류 경로에서 정리 코드를 빠뜨리지 않는 구조
+
+## 검색 키워드
+
+- 공유 상태: `Rust Arc Mutex HashMap`, `Rust MutexGuard scope drop`, `Rust poison error Mutex`
+- 메시지 전달: `Rust std sync mpsc channel unbounded`, `Rust std sync mpsc sync_channel try_send`, `Rust multiple producer channel chat server`
+- 소유권: `Rust clone Arc vs clone data`, `Rust cleanup on Result error RAII`
+- 설계: `Rust do not hold mutex during IO`, `slow consumer backpressure chat server`
+
 ## 문제
 
 TCP 연결을 유지하며 여러 사용자가 이름을 등록하고 메시지를 주고받는 간단한 채팅 프로토콜을 설계한다. 서버는 현재 연결된 사용자를 기억한다.
@@ -34,6 +49,15 @@ TCP 연결을 유지하며 여러 사용자가 이름을 등록하고 메시지�
 5. 정상 종료와 비정상 종료에서 사용자 상태를 제거한다.
 6. 느린 클라이언트가 있을 때의 정책을 실험한다.
 
+## 단계별 힌트
+
+1. 사용자 목록을 여러 연결 스레드가 함께 사용해야 하므로 단순한 `&mut HashMap`을 넘길 수 없는 이유부터 컴파일 오류로 확인한다.
+2. 공유 소유권에는 `Arc`, 변경의 직렬화에는 `Mutex`가 각각 다른 문제를 해결한다. 둘의 역할을 합쳐서 외우지 않는다.
+3. 이름 중복 확인과 사용자 등록은 하나의 원자적인 lock 구간이어야 한다.
+4. broadcast 대상 목록을 정하는 동안만 lock을 잡고, 실제 네트워크 쓰기를 하는 동안에도 guard가 살아 있는지 scope를 확인한다.
+5. 일반 `mpsc::channel`은 지연을 분리하지만 queue가 무제한이라 메모리 증가를 막지 못한다. `sync_channel`의 `send`는 queue가 차면 blocking하고 `try_send`는 즉시 실패하므로, queue full에서 메시지 버리기·사용자 연결 종료·송신자 대기 중 하나를 명시적으로 선택한다.
+6. 정상 종료뿐 아니라 `read` 오류, write 오류와 panic이 발생했을 때 사용자 제거 책임이 어디에 있는지 정한다.
+
 ## 완료 조건
 
 - 둘 이상의 사용자가 동시에 접속하고 메시지를 교환한다.
@@ -41,6 +65,7 @@ TCP 연결을 유지하며 여러 사용자가 이름을 등록하고 메시지�
 - 클라이언트 비정상 종료 후 사용자 상태가 정리된다.
 - 중복 이름이 정의한 방식으로 처리된다.
 - 공유 상태에서 가능한 경쟁 조건을 하나 이상 설명한다.
+- 사용자별 송신 queue가 가득 찼을 때의 정책과 최대 queue 크기가 기록되어 있다.
 
 ## 직접 조사할 질문
 
