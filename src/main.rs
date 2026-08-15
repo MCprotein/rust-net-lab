@@ -1,5 +1,5 @@
 use std::{
-    io::{Error, Read},
+    io::{Error, Read, Write},
     net::{TcpListener, TcpStream},
 };
 
@@ -8,6 +8,8 @@ fn handle_client(mut stream: TcpStream) -> Result<(), Error> {
     let mut buffer = [0_u8; 1024];
     let n = stream.read(&mut buffer)?;
     println!("받은 데이터: {:#?}", &buffer[..n]);
+    stream.write_all(&buffer[..n])?;
+    stream.flush()?;
 
     Ok(())
 }
