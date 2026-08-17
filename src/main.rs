@@ -12,7 +12,6 @@ fn handle_client(mut stream: TcpStream) -> Result<(), Error> {
 
         if n == 0 {
             println!("클라이언트 연결 종료");
-            stream.write_all("연결 종료".as_bytes())?;
             stream.flush()?;
             break;
         }
