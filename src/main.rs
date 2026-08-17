@@ -6,14 +6,25 @@ use std::{
 fn handle_client(mut stream: TcpStream) -> Result<(), Error> {
     println!("새로운 클라이언트 연결됨: {:#?}", stream.peer_addr()?);
     let mut buffer = [0_u8; 1024];
-    let n = stream.read(&mut buffer)?;
-    println!(
-        "받은 데이터: {:#?}, {:#?}",
-        &buffer[..n],
-        String::from_utf8_lossy(&buffer[..n]).trim_end()
-    );
-    stream.write_all(&buffer[..n])?;
-    stream.flush()?;
+
+    loop {
+        let n = stream.read(&mut buffer)?;
+
+        if n == 0 {
+            println!("클라이언트 연결 종료");
+            stream.write_all("연결 종료".as_bytes())?;
+            stream.flush()?;
+            break;
+        }
+
+        println!(
+            "받은 데이터: {:#?}, {:#?}",
+            &buffer[..n],
+            String::from_utf8_lossy(&buffer[..n]).trim_end()
+        );
+        stream.write_all(&buffer[..n])?;
+        stream.flush()?;
+    }
 
     Ok(())
 }
