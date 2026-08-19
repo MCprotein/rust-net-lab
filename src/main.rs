@@ -3,12 +3,21 @@ use std::{
     net::{TcpListener, TcpStream},
 };
 
+mod network {
+    pub mod buffer;
+}
+use network::buffer::NetworkBuffer;
+
 /// 실제로는 Client 프로그램이 별도로 존재
 /// 네트워크 통신을 통해 서버에 메세지 전달 -> 바이트로 해야함
+/// Header: 4 Bytes, Big-Endian (u32)
+/// Max Payload Size: 10 * 1024 * 1024
+/// Min Payload Size: 0 Bytes 불허
 #[derive(Default)]
 struct Client {
     content_length: [u8; 4],
     message: Vec<u8>,
+    max_message_size: usize,
 }
 
 impl Client {
@@ -21,6 +30,7 @@ impl Client {
         Self {
             content_length: body_length_u32.to_be_bytes(),
             message: raw_message,
+            max_message_size: 10 * 1024 * 1024,
         }
     }
 
@@ -85,6 +95,8 @@ fn client(stream: &mut TcpStream) -> Result<Vec<u8>, Error> {
 
     let n = stream.read(&mut buffer)?;
 
+    println!("클라이언트 버퍼: {:?}, n: {:?}", buffer, n);
+
     if n == 0 {
         stream.flush()?;
         return Err(Error::new(
@@ -93,8 +105,6 @@ fn client(stream: &mut TcpStream) -> Result<Vec<u8>, Error> {
         ));
     }
 
-    // stream.write_all(&buffer[..n])?;
-    // stream.flush()?;
     let raw_message = buffer[..n].to_vec();
     let client = Client::new(raw_message);
 
