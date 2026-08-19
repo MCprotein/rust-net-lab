@@ -37,12 +37,9 @@ impl Client {
     /// 헤더(4바이트) + 본문을 하나의 바이트 배열로 합쳐서 반환
     pub fn to_be_bytes(&self) -> Vec<u8> {
         let mut packet = Vec::with_capacity(4 + self.message.len());
-        println!("패킷: {:?}", packet);
 
         packet.extend_from_slice(&self.content_length);
-        println!("패킷: {:?}", packet);
         packet.extend_from_slice(&self.message);
-        println!("패킷: {:?}", packet);
 
         packet
     }
@@ -77,9 +74,15 @@ impl Message {
 fn handle_client(mut stream: TcpStream) -> Result<(), Error> {
     println!("새로운 클라이언트 연결됨: {:#?}", stream.peer_addr()?);
 
+    let mut network_buffer = NetworkBuffer::new();
+
     loop {
-        match client(&mut stream) {
-            Ok(byte_packet) => server(&byte_packet),
+        match client(&mut stream, &mut network_buffer) {
+            Ok(byte_packets) => {
+                for packet in byte_packets {
+                    server(&packet);
+                }
+            }
             Err(e) => {
                 println!("연결 종료: {}", e);
                 break;
@@ -90,12 +93,13 @@ fn handle_client(mut stream: TcpStream) -> Result<(), Error> {
     Ok(())
 }
 
-fn client(stream: &mut TcpStream) -> Result<Vec<u8>, Error> {
-    let mut buffer = [0_u8; 1024];
+fn client(
+    stream: &mut TcpStream,
+    network_buffer: &mut NetworkBuffer,
+) -> Result<Vec<Vec<u8>>, Error> {
+    let mut temp_buffer = [0_u8; 1024];
 
-    let n = stream.read(&mut buffer)?;
-
-    println!("클라이언트 버퍼: {:?}, n: {:?}", buffer, n);
+    let n = stream.read(&mut temp_buffer)?;
 
     if n == 0 {
         stream.flush()?;
@@ -105,10 +109,21 @@ fn client(stream: &mut TcpStream) -> Result<Vec<u8>, Error> {
         ));
     }
 
-    let raw_message = buffer[..n].to_vec();
+    let raw_message = temp_buffer[..n].to_vec();
     let client = Client::new(raw_message);
+    let packet_bytes = client.to_be_bytes();
 
-    Ok(client.to_be_bytes())
+    network_buffer.push_data(&packet_bytes);
+
+    /// 1. 클라이언트가 사용자의 메세지를 가공하여 메세지 길이를 맨앞 4바이트 헤더로 붙여서 반환
+    /// 2. 네트워크버퍼에 계속 쌓아 버퍼링하면서 길이마다 자르고, 자른걸 다시 벡터에 넣는다.
+    /// 3. 하나씩 서버에 보냄
+    let mut completed_packets = Vec::new();
+    while let Some(frame) = network_buffer.pop_frame() {
+        completed_packets.push(frame);
+    }
+
+    Ok(completed_packets)
 }
 
 fn server(packet: &[u8]) {
